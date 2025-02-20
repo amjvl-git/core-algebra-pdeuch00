@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+<canvas id="canvas" width="800" height="600" style="border:1px solid#000000;">
+Your browser does not support the HTML canvas tag.
+</canvas>
+<div>
+    <p>A: <input type="range" min="1" max="100" value="50" id="ARange"><span id="ADisplay"></span></p>
+    <p>B: <input type="range" min="1" max="100" value="50" id="BRange"><span id="BDisplay"></span></p>
+    <p>C: <input type="range" min="-20000" max="-1" value="-10000" id="CRange"><span id="CDisplay"></span></p>
+    <p>Bounce: <input type="range" min="0" max="1" value="1" step="0.01" id="BounceRange"><span id="BounceDisplay"></span></p>
+ </div>
+
+<script>
+
+// Initialise variables
+
+var A = 20; // A coefficient rom line equation
+var B = 20; // B coefficient from line equation
+var C = -10000; // C constant from line equation
+
+var radius = 14; // Ball radius
+var bx = -radius; // Ball position in x-axis
+var by = -radius; // Ball position in y-axis
+
+var ballActive = false; // Is the ball active?
+var velx = 0; // Velocity of the ball in x-axis
+var vely = 0; // Velocity of the ball in y-axis
+var bounciness = 1; // Bounciness (1- restitution) 0 == no bounce, 1 = perfect elaatic bounce
+
+function ballLineDistance()
+{
+    // Calculate the distance between ball and line
+    let dist  = 10000; // Set to some large value in the absence of a calculation
+    return dist;
+}
+
+function onRender()
+{
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+ 
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw line
+    let x1 = 0;
+    let y1 = -C/B;
+
+    let x2 = -C/A;
+    let y2=0;
+    
+    ctx.strokeStyle = "#6495ED";
+    ctx.beginPath();
+    ctx.moveTo(x1, canvas.height - y1);
+    ctx.lineTo(x2, canvas.height- y2);
+    ctx.stroke();
+
+    // Draw ball
+    if(ballActive)
+    {
+        ctx.strokeStyle = "#B8860B";
+        ctx.beginPath();
+        ctx.arc(bx, canvas.height - by, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+    else
+    {
+        // Draw ball area
+        ctx.fillStyle = "#DC143C";
+        ctx.fillRect(0, 5, canvas.width, 25);
+        ctx.stroke();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "16px Arial";
+        ctx.fillText("Click me!", 350, 25);
+    }
+}
+
+
+function onUpdate(timestep)
+{
+    if(ballActive)
+    {
+        // Update the balls position
+        let seconds = timestep / 1000;
+        vely = vely + (seconds * -98.1);
+        bx = bx + velx*seconds;
+        by = by + vely*seconds;
+
+        // Collision detection and resolution
+        let ballLineDist = ballLineDistance();
+        if(ballLineDist < radius)
+        {
+            // Resolve collision
+            let nx = A;
+            let ny = B;
+            let nMag = Math.sqrt(nx*nx+ny*ny);
+            nx = nx / nMag;
+            ny = ny / nMag;
+
+            let vDOTn = velx * nx + vely * ny;
+            let bounce = 1 + bounciness * 1; // Times 1 to make sure it's a number - that's what you get in a weakly type language!
+            velx = velx + (-bounce * vDOTn * nx);
+            vely = vely + (-bounce * vDOTn * ny);
+
+            // Move ball back along the collision normal
+            bx = bx + nx * (radius - ballLineDist);
+            by = by + ny * (radius - ballLineDist);
+        }
+        // Check if ball has gone off the bottom or side of the screen
+        if(by < -radius * 2 || bx -radius * 2 > document.getElementById("canvas").width)
+        {
+            ballActive = false;
+            velx = 0;
+            vely = 0;
+        }
+    }
+}
+
+
+// Intilize the variable display
+document.getElementById("ADisplay").innerText = "" + A;
+document.getElementById("BDisplay").innerText = "" + B;
+document.getElementById("CDisplay").innerText = "" + C;
+document.getElementById("BounceDisplay").innerText = "" + bounciness;
+
+// Add listeners to sliders
+document.getElementById("ARange").oninput = function() {
+  A = this.value;
+  document.getElementById("ADisplay").innerText = "" + A;
+  onRender();
+}
+
+document.getElementById("BRange").oninput = function() {
+  B = this.value;
+  document.getElementById("BDisplay").innerText = "" + B;
+  onRender();
+}
+
+document.getElementById("CRange").oninput = function() {
+  C = this.value;
+  document.getElementById("CDisplay").innerText = "" + C;
+  onRender();
+}
+
+document.getElementById("BounceRange").oninput = function() {
+  bounciness = this.value;
+  document.getElementById("BounceDisplay").innerText = "" + bounciness;
+}
+
+// Add listener to the canvas
+document.getElementById("canvas").onclick = function(event)
+{
+    if(!ballActive)
+    {
+        let canvas = document.getElementById("canvas");
+        bx = event.pageX - canvas.offsetLeft;
+        by = canvas.height - event.pageY - canvas.offsetTop;
+        ballActive = true;
+    }
+}
+
+// Main gameLoop
+function gameLoop(timestamp) {
+    let timestep = timestamp - lastRender;
+    onUpdate(timestep); 
+    onRender();
+
+    lastRender = timestamp;
+    window.requestAnimationFrame(gameLoop);
+}
+
+var lastRender = 0;
+window.requestAnimationFrame(gameLoop);
+</script>
+
+
+
+</body>
+</html>
